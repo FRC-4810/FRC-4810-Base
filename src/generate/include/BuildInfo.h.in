@@ -1,0 +1,7 @@
+#pragma once
+
+namespace buildInfo {
+    static const char* const DATE = "@DATE@";
+    static const char* const GIT_BRANCH = "@BRANCH@";
+    static const char* const GIT_USER = "@USER@";
+}

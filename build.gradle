@@ -48,6 +48,42 @@ wpi.sim.addGui().defaultEnabled = true
 // Enable DS but not by default
 wpi.sim.addDriverstation()
 
+// ------------------------
+// Build Info Header Generation
+// ------------------------
+
+//-GMS - Version Management
+
+def generateDir = "$buildDir/generated"
+
+task generateBuildInfo {
+    outputs.file("$generateDir/BuildInfo.h")
+
+    doLast {
+        new File(generateDir).mkdirs()
+
+        def date = new Date().format("yyyy-MM-dd HH:mm:ss")
+        def branch = "git rev-parse --abbrev-ref HEAD".execute().text.trim()
+        def user = "git config user.name".execute().text.trim()
+
+        def template = file("src/generate/include/BuildInfo.h.in").text
+
+        def processed = template
+                .replace("@DATE@", date)
+                .replace("@BRANCH@", branch)
+                .replace("@USER@", user)
+
+        new File("$generateDir/BuildInfo.h").text = processed
+    }
+}
+
+// Make robot code depend on build info
+tasks.withType(CppCompile) {
+    dependsOn(generateBuildInfo)
+}
+
+//----------------------------------------------------
+
 model {
     components {
         frcUserProgram(NativeExecutableSpec) {
@@ -63,6 +99,7 @@ model {
                 }
                 exportedHeaders {
                     srcDir 'src/main/include'
+                    srcDir generateDir       // -GMS for BuildInfo.h
                 }
             }
 

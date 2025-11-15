@@ -16,6 +16,9 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 #include <frc/shuffleboard/Shuffleboard.h>
 
+//-GMS - version management
+#include "BuildInfo.h"
+
 // Provides initialization at robot power-on.
 
 // Robot-wide initialization code goes here, which will be executed when
@@ -32,6 +35,10 @@ void Robot::RobotInit()
    m_chooser.AddOption( AUTON_ROUTINE_01, AUTON_ROUTINE_01 );
 
    frc::SmartDashboard::PutData( "Auton Modes", &m_chooser );
+
+   frc::SmartDashboard::PutString("Build Date", BuildInfo::DATE);
+   frc::SmartDashboard::PutString("Git Branch", BuildInfo::BRANCH);
+   frc::SmartDashboard::PutString("Git User", BuildInfo::USER);
 
    m_RobotIO.RobotInit();
 }
