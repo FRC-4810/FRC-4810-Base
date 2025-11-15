@@ -11,7 +11,7 @@ Drivetrain::Drivetrain()
     m_bIsFieldRelative = true;
 
     m_bLockOnStop = false;
-    m_dGyroOffset = 180.0;
+    m_dGyroOffset = 360.0;
 
     m_bUseCameraMeasurements = false;
 }
