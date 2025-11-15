@@ -37,8 +37,8 @@ void Robot::RobotInit()
    frc::SmartDashboard::PutData( "Auton Modes", &m_chooser );
 
    frc::SmartDashboard::PutString("Build Date", buildInfo::DATE);
-   frc::SmartDashboard::PutString("Git Branch", buildInfo::BRANCH);
-   frc::SmartDashboard::PutString("Git User", buildInfo::USER);
+   //frc::SmartDashboard::PutString("Git Branch", buildInfo::BRANCH);
+   //frc::SmartDashboard::PutString("Git User", buildInfo::USER);
 
    m_RobotIO.RobotInit();
 }
