@@ -32,7 +32,6 @@ void Drivetrain::Initialize ( RobotIO *p_pRobotIO )
 
     // Set gyrp offset at start (change m_dGyroOffset depending on what direction the bot should be facing at start)
     m_gyro.SetYaw(units::degree_t{m_dGyroOffset});
-    frc::SmartDashboard::PutData("Field", &m_field);
     nt::NetworkTableInstance::GetDefault().GetTable("limelight")->PutNumber("setIMUMode", 1);
 }
 
@@ -41,9 +40,9 @@ void Drivetrain::Execute (  double leftYJoystickValue, double leftXJoystickValue
 {
     frc::SmartDashboard::PutNumber("Gyro Angle", (double)GetGyroRotation2d().Degrees());
     frc::Pose2d botPose = GetBotPose();
-    frc::SmartDashboard::PutNumber("Odometry X", (double)botPose.X());
-    frc::SmartDashboard::PutNumber("Odometry Y", (double)botPose.Y());
-    frc::SmartDashboard::PutNumber("Odometry Rot", (double)botPose.Rotation().Degrees());
+    frc::SmartDashboard::PutNumber("Odometry/Odometry X", (double)botPose.X());
+    frc::SmartDashboard::PutNumber("Odometry/Odometry Y", (double)botPose.Y());
+    frc::SmartDashboard::PutNumber("Odometry/Odometry Rot", (double)botPose.Rotation().Degrees());
 
     frc::SmartDashboard::PutBoolean("Drive Bot Relative", m_bIsFieldRelative);
 
@@ -112,7 +111,6 @@ void Drivetrain::DriveBotRelative( double xSpeed, double ySpeed, double rotSpeed
     UpdateOdometry();
 }
 
-
 void Drivetrain::Stop()
 {
     m_frontLeft.Stop();
@@ -122,13 +120,19 @@ void Drivetrain::Stop()
 }
 
 
+// ************
+// * Odometry *
+// ************
 
 void Drivetrain::UpdateOdometry()
 {
-    frc::Rotation2d correctedGyro = -GetGyroRotation2d();
-
-    m_poseEstimator.Update(
-        correctedGyro,
+    //-GMS - Try base odometry code to start - power on in a corner, drive around a room, and return to the 
+    // corner. Values for x and y should be near zero. Also check left is positive y, forward is positive x.
+    // Driver station should be set to blue alliance, though I don't think it will impact this.
+    // Odometry values are posted to shuffleboard under "Odometry" folder.
+    m_poseEstimator.UpdateWithTime(
+        m_DrivetrainTimer->Get(),
+        GetGyroRotation2d(),
         {
             m_frontLeft.GetPosition(),
             m_frontRight.GetPosition(),
@@ -136,9 +140,18 @@ void Drivetrain::UpdateOdometry()
             m_backRight.GetPosition()
         }
     );
-    TryAddVisionMeasurement((double)correctedGyro.Degrees());
+}
 
-    m_field.SetRobotPose(GetBotPose());
+void Drivetrain::ResetOdometry( frc::Pose2d pose )
+{
+    m_poseEstimator.ResetPose( pose );
+}
+
+frc::Pose2d Drivetrain::GetBotPose()
+{
+    return {
+        m_poseEstimator.GetEstimatedPosition()
+    };
 }
 
 void Drivetrain::TryAddVisionMeasurement(double correctedGyroDegrees)
@@ -207,30 +220,3 @@ void Drivetrain::TryAddVisionMeasurement(double correctedGyroDegrees)
         printf("Mt2 Pose Added | X: [%f], Y: [%f], Rot: [%f]", (double)mt2_pose.pose.X(), (double)mt2_pose.pose.Y(), (double)mt2_pose.pose.Rotation().Degrees());
     }*/
 }
-
-void Drivetrain::ResetOdometry( frc::Pose2d pose )
-{
-    m_poseEstimator.ResetPose( pose );
-}
-frc::Pose2d Drivetrain::GetBotPose()
-{
-    return {
-        m_poseEstimator.GetEstimatedPosition()
-    };
-}
-
-/*void Drivetrain::FollowTrajectory(const choreo::SwerveSample& sample)
-{
-    frc::Pose2d pose = GetBotPose();
-
-    double xFeedback = m_xFeedbackController.Calculate(pose.X().value(), sample.x.value());     // X feedback Speed in m/s
-    double yFeedback = m_yFeedbackController.Calculate(pose.Y().value(), sample.y.value());     // Y feedback Speed in m/s
-    double headingFeedback = m_headingFeedbackController.Calculate(pose.Rotation().Radians().value(), sample.heading.value());      // Rot feedback speed in rad/s
-
-    double xSpeed = (double)sample.vx + xFeedback;
-    double ySpeed = (double)sample.vy + yFeedback;
-    double rotSpeed = (double)sample.omega + headingFeedback;
-
-    printf("Trajectory Velocity: X [%f] Y [%f] Omega [%f]\nTrajectory Position: X [%f] Y [%f] Heading [%f]\n", sample.vx, sample.vy, sample.omega, sample.x.value(), sample.y.value(), sample.heading.value());
-    DriveFieldRelative(xSpeed, ySpeed, rotSpeed);
-}*/

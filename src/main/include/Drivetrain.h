@@ -5,7 +5,7 @@
 #include <frc/geometry/Translation2d.h>
 #include <frc/geometry/Rotation2d.h>
 #include <frc/kinematics/SwerveDriveKinematics.h>
-#include <frc/kinematics/SwerveDriveOdometry.h>
+//#include <frc/kinematics/SwerveDriveOdometry.h> - Replaced with pose estimator
 #include <frc/estimator/SwerveDrivePoseEstimator.h>
 #include <frc/AnalogGyro.h>
 
@@ -19,7 +19,14 @@
 #include <ctre/phoenix6/Pigeon2.hpp>
 #include "SwerveModule.h"
 
-//#include <choreo/trajectory/Trajectory.h> - GMS - Install new Choreo Library
+//-GMS - 2026 Auton Setup
+#include <pathplanner/lib/auto/AutoBuilder.h>
+#include <pathplanner/lib/config/RobotConfig.h>
+#include <pathplanner/lib/controllers/PPHolonomicDriveController.h>
+#include <frc/geometry/Pose2d.h>
+#include <frc/kinematics/ChassisSpeeds.h>
+#include <frc/DriverStation.h>
+
 
 
 #include "RobotIO.h"
@@ -35,6 +42,8 @@ namespace drivetrain
 }
 
 using namespace ctre::phoenix6;
+using namespace pathplanner;
+
 
 class Drivetrain
 {
@@ -55,14 +64,18 @@ public:
     inline void SetUsingCamera( bool bUseCamera )
         {  m_bUseCameraMeasurements = bUseCamera;  }
 
-
     inline frc::Rotation2d GetGyroRotation2d()
         { return{ frc::Rotation2d(units::degree_t{ -m_gyro.GetYaw().GetValue() }) }; }
 
 
+    
+    // ************
+    // * Odometry *
+    // ************
+    
     void ResetOdometry( frc::Pose2d pose = frc::Pose2d{0_m, 0_m, frc::Rotation2d(0_deg)} );
-    void SetVisionMeasurements();
     frc::Pose2d GetBotPose();
+
 
 
     // Class Methods.
@@ -118,10 +131,8 @@ public:
    * Units: radians per second
    */
     void DriveBotRelative( double xSpeed, double ySpeed, double rotSpeed );
-
+    
     void Stop();
-
-    //void FollowTrajectory( const choreo::SwerveSample& sample); - GMS - Install new Choreo Library
 
     SwerveModule m_frontLeft{1,2,9};
     SwerveModule m_frontRight{3,4,10};
@@ -158,11 +169,13 @@ private:
         m_backRightLocation
     };
 
-//-GMS - Limelight 2025
-// The SwerveDrivePoseEstimator class is similar to the standard Odometry 
-// class, but including functions for adding vision measurements and 
-// updating position with time. This will work with Limelight's MegaTag2
-// features to allow us to read April Tags and get an estimated field positon.
+
+  
+    // ************
+    // * Odometry *
+    // ************
+
+    void UpdateOdometry();  // This might need to be public, probably not
 
     frc::SwerveDrivePoseEstimator<4> m_poseEstimator{
         m_kinematics,
@@ -175,33 +188,9 @@ private:
         },
         frc::Pose2d{0_m, 0_m, frc::Rotation2d{units::degree_t{0.0}}}
     };
-
-    frc::Field2d m_field;
-
-    frc::PIDController m_xFeedbackController{0, 0.0, 0.0};
-    frc::PIDController m_yFeedbackController{0, 0.0, 0.0};
-    frc::PIDController m_headingFeedbackController{0, 0.0, 0.0};
-
-
-    // This is an extension of the SwerveDriveOdometry class used to calculate
-    // robot position and angle. Pose Estimator is used instead of Odometry because
-    // of its ability to use april tag data
-    //frc::SwerveDriveOdometry<4> m_odometry{};
-
-    /**
-     * Function for updating the robot's tracking calculations.
-     * Called by Drivetrain execute function. Uses time, gyro, and
-     * swerve module positions to get bot position.
-    */
-
-   //-GMS - Odometry
     
-    void UpdateOdometry();
-
-    void TryAddVisionMeasurement(double correctedGyroDegrees);
-
-    bool m_bUseCameraMeasurements;
-
     frc::Timer *m_DrivetrainTimer;
     
+    void TryAddVisionMeasurement(double gyroDegrees);
+    bool m_bUseCameraMeasurements;
 };
